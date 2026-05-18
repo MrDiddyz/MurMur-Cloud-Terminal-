@@ -33,7 +33,7 @@ describe('auth', () => {
       .setExpirationTime('1h')
       .sign(secret)
 
-    await expect(verifyToken(token)).rejects.toThrow('Invalid or expired token')
+    await expect(verifyToken(token)).rejects.toThrow('Invalid token payload')
   })
 
   it('rejects tokens with missing required payload fields', async () => {
@@ -45,7 +45,7 @@ describe('auth', () => {
       .setExpirationTime('1h')
       .sign(secret)
 
-    await expect(verifyToken(token)).rejects.toThrow('Invalid or expired token')
+    await expect(verifyToken(token)).rejects.toThrow('Invalid token payload')
   })
 
   it('returns 401 when bearer token is invalid', async () => {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify, SignJWT } from 'jose'
 import { getConfig } from './config'
-import { forbidden, toApiError, unauthorized } from './errors'
+import { forbidden, isAppError, toApiError, unauthorized } from './errors'
+import { getLogger } from './logger'
 
 export interface JWTPayload {
   sub: string
@@ -9,6 +10,8 @@ export interface JWTPayload {
   iat?: number
   exp?: number
 }
+
+const logger = getLogger('auth')
 
 function isValidJWTPayload(payload: unknown): payload is JWTPayload {
   if (typeof payload !== 'object' || payload === null) return false
@@ -47,7 +50,12 @@ export async function verifyToken(token: string): Promise<JWTPayload> {
       throw unauthorized('Invalid token payload')
     }
     return payload
-  } catch {
+  } catch (err) {
+    if (isAppError(err)) throw err
+    logger.warn(
+      { reason: err instanceof Error ? err.message : String(err) },
+      'JWT verification failed',
+    )
     throw unauthorized('Invalid or expired token')
   }
 }
