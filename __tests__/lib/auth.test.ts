@@ -36,6 +36,18 @@ describe('auth', () => {
     await expect(verifyToken(token)).rejects.toThrow('Invalid or expired token')
   })
 
+  it('rejects tokens with missing required payload fields', async () => {
+    const secret = new TextEncoder().encode('a'.repeat(32))
+    const token = await new SignJWT({ role: 'admin' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuer('murmur-cloud-terminal')
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(secret)
+
+    await expect(verifyToken(token)).rejects.toThrow('Invalid or expired token')
+  })
+
   it('returns 401 when bearer token is invalid', async () => {
     const wrapped = requireRole(async () => NextResponse.json({ ok: true }), 'admin')
     const req = new Request('http://localhost/api/test', {
