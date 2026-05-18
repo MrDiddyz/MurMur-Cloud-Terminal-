@@ -5,16 +5,17 @@ import { getLogger } from '@/lib/logger'
 
 const logger = getLogger('api:agents:execute')
 
-type RouteParams = { params: { id: string } }
+type RouteContext = { params: Promise<{ id: string }> }
 
-export async function POST(_req: NextRequest, { params }: RouteParams): Promise<NextResponse> {
+export async function POST(_req: NextRequest, context: RouteContext): Promise<NextResponse> {
+  const { id } = await context.params
   try {
-    const result = await executeAgent(params.id)
+    const result = await executeAgent(id)
     await persistResult(result)
     return NextResponse.json({ result }, { status: result.success ? 200 : 422 })
   } catch (err) {
     const { statusCode, body } = toApiError(err)
-    logger.error({ agentId: params.id, err }, 'POST /api/agents/:id/execute failed')
+    logger.error({ agentId: id, err }, 'POST /api/agents/:id/execute failed')
     return NextResponse.json(body, { status: statusCode })
   }
 }

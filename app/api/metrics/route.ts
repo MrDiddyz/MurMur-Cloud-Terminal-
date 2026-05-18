@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { listAgents } from '@/services/agent-manager'
-import { getCircuitBreakerStatus } from '@/services/execution-engine'
+import { getCircuitBreakerStatus, getExecutionStats } from '@/services/execution-engine'
 
 export async function GET(): Promise<NextResponse> {
   const agents = listAgents()
+  const executionStats = getExecutionStats()
   const statusCounts = agents.reduce<Record<string, number>>((acc, a) => {
     acc[a.status] = (acc[a.status] ?? 0) + 1
     return acc
@@ -22,6 +23,15 @@ export async function GET(): Promise<NextResponse> {
       const val = state === 'CLOSED' ? 0 : state === 'HALF_OPEN' ? 1 : 2
       return `murmur_circuit_breaker_state{name="${name}"} ${val}`
     }),
+    '',
+    '# HELP murmur_agent_executions_total Total number of persisted agent executions',
+    '# TYPE murmur_agent_executions_total counter',
+    `murmur_agent_executions_total{outcome="success"} ${executionStats.successful}`,
+    `murmur_agent_executions_total{outcome="failure"} ${executionStats.failed}`,
+    '',
+    '# HELP murmur_agent_execution_avg_duration_ms Average execution duration in milliseconds',
+    '# TYPE murmur_agent_execution_avg_duration_ms gauge',
+    `murmur_agent_execution_avg_duration_ms ${executionStats.averageDurationMs}`,
   ]
 
   return new NextResponse(lines.join('\n') + '\n', {

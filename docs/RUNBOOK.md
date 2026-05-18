@@ -7,6 +7,7 @@
 | `GET /api/health` | `{"status":"healthy"}` 200 | Check circuit breaker states in response; investigate Redis/DB |
 | `GET /api/readiness` | `{"ready":true}` 200 | Pod not ready; check logs for startup errors |
 | `GET /api/metrics` | Prometheus text 200 | Check application logs |
+| `GET /api/analytics?limit=20` | JSON stats + recent executions 200 | Validate execution flow and persistence path |
 
 ## Circuit Breaker Recovery
 
@@ -34,8 +35,9 @@ If `GET /api/health` returns `"status":"degraded"`:
 
 ### P2 — High error rate
 1. Check `GET /api/metrics` for `murmur_agents_total{status="failed"}`
-2. Review structured logs filtered by `"component":"execution-engine"`
-3. Check circuit breaker states
+2. Check `GET /api/analytics` for success/failure ratios and average durations
+3. Review structured logs filtered by `"component":"execution-engine"`
+4. Check circuit breaker states
 
 ## Log Queries
 

@@ -17,6 +17,17 @@ export interface ExecutionResult {
   error?: string
 }
 
+export interface ExecutionStats {
+  total: number
+  successful: number
+  failed: number
+  successRate: number
+  averageDurationMs: number
+}
+
+const executionHistory: ExecutionResult[] = []
+const maxHistory = 1_000
+
 export async function executeAgent(agentId: string): Promise<ExecutionResult> {
   const agent = getAgent(agentId)
   const startedAt = new Date().toISOString()
@@ -62,6 +73,11 @@ export async function publishEvent(channel: string, payload: unknown): Promise<v
 }
 
 export async function persistResult(result: ExecutionResult): Promise<void> {
+  executionHistory.unshift(result)
+  if (executionHistory.length > maxHistory) {
+    executionHistory.length = maxHistory
+  }
+
   await dbBreaker.execute(async () => {
     await withRetry(
       async () => {
@@ -78,4 +94,33 @@ export function getCircuitBreakerStatus(): Record<string, string> {
     redis: redisBreaker.getState(),
     database: dbBreaker.getState(),
   }
+}
+
+function getDurationMs(result: ExecutionResult): number {
+  const duration = Date.parse(result.completedAt) - Date.parse(result.startedAt)
+  return Number.isFinite(duration) && duration >= 0 ? duration : 0
+}
+
+export function listExecutionResults(limit = 50): ExecutionResult[] {
+  const safeLimit = Math.max(0, Math.min(limit, maxHistory))
+  return executionHistory.slice(0, safeLimit)
+}
+
+export function getExecutionStats(): ExecutionStats {
+  const total = executionHistory.length
+  const successful = executionHistory.filter((result) => result.success).length
+  const failed = total - successful
+  const totalDurationMs = executionHistory.reduce((acc, result) => acc + getDurationMs(result), 0)
+
+  return {
+    total,
+    successful,
+    failed,
+    successRate: total === 0 ? 0 : successful / total,
+    averageDurationMs: total === 0 ? 0 : totalDurationMs / total,
+  }
+}
+
+export function _clearExecutionHistory(): void {
+  executionHistory.length = 0
 }

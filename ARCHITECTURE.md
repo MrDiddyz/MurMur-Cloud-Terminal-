@@ -16,7 +16,8 @@ MurMur Cloud Terminal is a cloud-native execution environment for autonomous AI 
 ┌──────────────────────────▼──────────────────────────────────────┐
 │                      Next.js App Layer                           │
 │  ┌──────────────┐  ┌───────────────┐  ┌───────────────────────┐ │
-│  │  /api/agents │  │  /api/health  │  │  /api/metrics (Prom)  │ │
+│  │  /api/agents │  │  /api/health  │  │  /api/metrics +        │ │
+│  │              │  │               │  │  /api/analytics         │ │
 │  └──────┬───────┘  └───────────────┘  └───────────────────────┘ │
 └─────────┼───────────────────────────────────────────────────────┘
           │
@@ -100,6 +101,7 @@ pending ──▶ running ──▶ completed
 |---|---|---|
 | Structured logs | stdout | JSON (pino); pretty in dev |
 | Prometheus metrics | `GET /api/metrics` | OpenMetrics text |
+| Execution analytics | `GET /api/analytics` | JSON (aggregates + recent runs) |
 | Health check | `GET /api/health` | JSON |
 | Readiness probe | `GET /api/readiness` | JSON |
 | Circuit breaker state | included in health + metrics | — |
