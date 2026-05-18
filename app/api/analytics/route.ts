@@ -10,15 +10,15 @@ const maxLimit = 100
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const limitParam = req.nextUrl.searchParams.get('limit')
-    const limit = limitParam === null ? defaultLimit : Number.parseInt(limitParam, 10)
+    const parsedLimit = limitParam === null ? defaultLimit : Number.parseInt(limitParam, 10)
 
-    if (!Number.isInteger(limit) || limit < 1 || limit > maxLimit) {
+    if (!Number.isFinite(parsedLimit) || !Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > maxLimit) {
       throw validationError(`Invalid limit. Must be an integer between 1 and ${maxLimit}`)
     }
 
     return NextResponse.json({
       stats: getExecutionStats(),
-      recentExecutions: listExecutionResults(limit),
+      recentExecutions: listExecutionResults(parsedLimit),
     })
   } catch (err) {
     const { statusCode, body } = toApiError(err)

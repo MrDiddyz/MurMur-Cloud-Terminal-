@@ -97,7 +97,9 @@ export function getCircuitBreakerStatus(): Record<string, string> {
 }
 
 function getDurationMs(result: ExecutionResult): number {
-  const duration = Date.parse(result.completedAt) - Date.parse(result.startedAt)
+  const startedAt = new Date(result.startedAt).getTime()
+  const completedAt = new Date(result.completedAt).getTime()
+  const duration = completedAt - startedAt
   return Number.isFinite(duration) && duration >= 0 ? duration : 0
 }
 
