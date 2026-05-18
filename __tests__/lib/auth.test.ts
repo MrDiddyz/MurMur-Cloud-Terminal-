@@ -62,7 +62,7 @@ describe('auth', () => {
 
   it('rejects tokens with invalid iat type', async () => {
     const secret = new TextEncoder().encode('a'.repeat(32))
-    const token = await new SignJWT({ sub: 'user-1', role: 'admin', iat: 'bad' })
+    const token = await new SignJWT({ sub: 'user-1', role: 'admin', iat: 'bad' } as never)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuer('murmur-cloud-terminal')
       .setExpirationTime('1h')

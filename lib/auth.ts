@@ -53,7 +53,7 @@ export async function verifyToken(token: string): Promise<JWTPayload> {
   } catch (err) {
     if (isAppError(err)) throw err
     logger.warn(
-      { reason: err instanceof Error ? err.message : String(err) },
+      { reason: err instanceof Error ? err.message : String(err), tokenLength: token.length },
       'JWT verification failed',
     )
     throw unauthorized('Invalid or expired token')
