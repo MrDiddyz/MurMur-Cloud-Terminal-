@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify, SignJWT } from 'jose'
 import { getConfig } from './config'
-import { unauthorized } from './errors'
+import { forbidden, toApiError, unauthorized } from './errors'
 
 export interface JWTPayload {
   sub: string
   role: 'admin' | 'operator' | 'viewer'
   iat?: number
   exp?: number
+}
+
+function isValidJWTPayload(payload: unknown): payload is JWTPayload {
+  if (typeof payload !== 'object' || payload === null) return false
+
+  const candidate = payload as Record<string, unknown>
+  if (typeof candidate.sub !== 'string' || candidate.sub.trim().length === 0) return false
+  if (!['admin', 'operator', 'viewer'].includes(String(candidate.role))) return false
+
+  if (candidate.iat !== undefined && typeof candidate.iat !== 'number') return false
+  if (candidate.exp !== undefined && typeof candidate.exp !== 'number') return false
+  return true
 }
 
 function getSecret(): Uint8Array {
@@ -31,7 +43,10 @@ export async function verifyToken(token: string): Promise<JWTPayload> {
   const cfg = getConfig()
   try {
     const { payload } = await jwtVerify(token, getSecret(), { issuer: cfg.JWT_ISSUER })
-    return payload as unknown as JWTPayload
+    if (!isValidJWTPayload(payload)) {
+      throw unauthorized('Invalid token payload')
+    }
+    return payload
   } catch {
     throw unauthorized('Invalid or expired token')
   }
@@ -51,17 +66,12 @@ export function requireRole(
     try {
       const payload = await extractToken(req)
       if (allowedRoles.length > 0 && !allowedRoles.includes(payload.role)) {
-        return NextResponse.json(
-          { error: { code: 'FORBIDDEN', message: 'Insufficient permissions' } },
-          { status: 403 },
-        )
+        throw forbidden('Insufficient permissions')
       }
       return handler(req, payload)
     } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes('Unauthorized')) {
-        return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: err.message } }, { status: 401 })
-      }
-      return NextResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Auth error' } }, { status: 500 })
+      const { statusCode, body } = toApiError(err)
+      return NextResponse.json(body, { status: statusCode })
     }
   }
 }

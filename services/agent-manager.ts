@@ -30,17 +30,20 @@ function conflictError(message: string): AppError {
 }
 
 export function createAgent(input: CreateAgentInput): Agent {
-  if (!input.name?.trim()) throw validationError('Agent name is required')
-  if (!input.goal?.trim()) throw validationError('Agent goal is required')
-  if (Array.from(store.values()).some((a) => a.name === input.name && a.status !== 'completed')) {
-    throw conflictError(`Agent with name "${input.name}" already exists`)
+  const normalizedName = input.name?.trim()
+  const normalizedGoal = input.goal?.trim()
+
+  if (!normalizedName) throw validationError('Agent name is required')
+  if (!normalizedGoal) throw validationError('Agent goal is required')
+  if (Array.from(store.values()).some((a) => a.name === normalizedName && a.status !== 'completed')) {
+    throw conflictError(`Agent with name "${normalizedName}" already exists`)
   }
 
   const now = new Date().toISOString()
   const agent: Agent = {
     id: randomUUID(),
-    name: input.name.trim(),
-    goal: input.goal.trim(),
+    name: normalizedName,
+    goal: normalizedGoal,
     status: 'pending',
     createdAt: now,
     updatedAt: now,

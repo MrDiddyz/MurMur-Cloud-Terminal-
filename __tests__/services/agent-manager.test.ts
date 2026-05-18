@@ -49,6 +49,11 @@ describe('agent-manager', () => {
       createAgent({ name: 'agent', goal: 'goal' })
       expect(() => createAgent({ name: 'agent', goal: 'goal2' })).toThrow()
     })
+
+    it('throws on duplicate active agent name after trimming', () => {
+      createAgent({ name: 'agent', goal: 'goal' })
+      expect(() => createAgent({ name: ' agent ', goal: 'goal2' })).toThrow()
+    })
   })
 
   describe('getAgent', () => {
