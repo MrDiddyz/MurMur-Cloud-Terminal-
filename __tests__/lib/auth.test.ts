@@ -48,6 +48,29 @@ describe('auth', () => {
     await expect(verifyToken(token)).rejects.toThrow('Invalid token payload')
   })
 
+  it('rejects tokens with empty subject', async () => {
+    const secret = new TextEncoder().encode('a'.repeat(32))
+    const token = await new SignJWT({ sub: '   ', role: 'admin' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuer('murmur-cloud-terminal')
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(secret)
+
+    await expect(verifyToken(token)).rejects.toThrow('Invalid token payload')
+  })
+
+  it('rejects tokens with invalid iat type', async () => {
+    const secret = new TextEncoder().encode('a'.repeat(32))
+    const token = await new SignJWT({ sub: 'user-1', role: 'admin', iat: 'bad' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuer('murmur-cloud-terminal')
+      .setExpirationTime('1h')
+      .sign(secret)
+
+    await expect(verifyToken(token)).rejects.toThrow('Invalid or expired token')
+  })
+
   it('returns 401 when bearer token is invalid', async () => {
     const wrapped = requireRole(async () => NextResponse.json({ ok: true }), 'admin')
     const req = new Request('http://localhost/api/test', {
@@ -55,7 +78,11 @@ describe('auth', () => {
     })
 
     const res = await wrapped(req as never)
+    const body = await res.json()
     expect(res.status).toBe(401)
+    expect(body).toEqual({
+      error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' },
+    })
   })
 
   it('returns 403 when role is not allowed', async () => {
@@ -66,6 +93,10 @@ describe('auth', () => {
     })
 
     const res = await wrapped(req as never)
+    const body = await res.json()
     expect(res.status).toBe(403)
+    expect(body).toEqual({
+      error: { code: 'FORBIDDEN', message: 'Insufficient permissions' },
+    })
   })
 })
